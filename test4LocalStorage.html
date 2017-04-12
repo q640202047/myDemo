@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+	</head>
+	<body>
+		<script type="text/javascript">
+			window.util = {};
+			
+			(function(){
+				if(!window.util || !window.JSON || !window.localStorage) {
+			        return;
+			    }
+				
+				function valid(key){
+					if(!window.JSON || !window.localStorage || !key){
+						return false;
+					}else{
+						return true;
+					}
+				}
+				
+				function getDeepNodeStr(keyList){
+					//默认根节点的变量名为parentNode
+					var invokeStr = "parentNode";
+					//将层级节点拼接成字符串
+					for(var i=0;i<keyList.length;i++){
+						if(i != 0){
+							invokeStr += '["' + keyList[i] + '"]';
+						}
+					}
+					return invokeStr;
+				}
+				
+				function getFn(key){
+					if(valid(key)){
+						var item = null;
+						if(key.indexOf('.') != -1){
+							try{
+								//截取key
+								var keyList = key.split('.');
+								//根节点对象
+								var parentNode = getFn(keyList[0]);
+								//获取目标节点的字符串
+								var invokeStr = getDeepNodeStr(keyList);
+								//目标节点赋值给item
+								invokeStr = 'item = ' + invokeStr + ';';
+								item = eval(invokeStr);
+							}catch(e){
+								console.error(JSON.stringify(e));
+							}
+							return item;
+						}else{
+							item = window.localStorage.getItem(key);
+							return !!item ? JSON.parse(item) : null;
+						}
+					}
+				}
+				
+				function setFn(key,data){
+					if(valid(key)){
+						if(key.indexOf('.') != -1){
+							//截取key
+							var keyList = key.split('.');
+							//根节点对象
+							var parentNode = getFn(keyList[0]);
+							//获取目标节点的字符串
+							var invokeStr = getDeepNodeStr(keyList);
+							//目标节点赋值data
+							invokeStr += '=' + JSON.stringify(data);
+							eval(invokeStr);
+							//重新set
+							setFn(keyList[0],parentNode);
+						}else{
+							window.localStorage.setItem(key,JSON.stringify(data));
+						}
+					}
+				}
+				
+				function delFn(key){
+					if(valid(key)){
+						if(key.indexOf('.') != -1){
+							//截取key
+							var keyList = key.split('.');
+							//根节点对象
+							var parentNode = getFn(keyList[0]);
+							//获取目标节点的字符串
+							var invokeStr = getDeepNodeStr(keyList);
+							//删除目标节点
+							eval('delete '+invokeStr);
+							//重新set
+							setFn(keyList[0],parentNode);
+						}else{
+							window.localStorage.removeItem(key);
+						}
+					}
+				}
+				
+				window.util.localStorage = {
+					'get' : getFn,
+					'set' : setFn,
+					'del' : delFn
+				};
+			})();
+			
+			var user = {
+				'name' : 'huilin',
+				'age' : 25,
+				'position' : {
+					lng : 103,
+					lat : 457
+				}
+			}
+			
+			util.localStorage.set('user',user);
+			util.localStorage.set('user.name','test');
+			util.localStorage.del('user.age');
+			console.info(JSON.stringify(util.localStorage.get('user')));
+		</script>
+	</body>
+</html>
